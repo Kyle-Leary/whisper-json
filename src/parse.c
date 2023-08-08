@@ -28,16 +28,27 @@ static WJSONValue *decl_list(Lexer *l) {
 
   WJSONObject obj = wjson_object_create();
 
+  // hack to support empty arrays, since we can't really insert an EMPTY value
+  // without making things ugly in the API.
+  if (l->curr_token.type == RCURLY)
+    goto end_object_builder;
+
   INSERT_DECL(obj)
   while (l->curr_token.type == COMMA) {
+    eat(l, COMMA);
     INSERT_DECL(obj)
   }
 
+end_object_builder :
+
+{ // haha clangd goes apeshit around labels but it's fine if we wrap this in a
+  // block.
   WJSONValue *final_array = (WJSONValue *)malloc(sizeof(WJSONValue));
   final_array->data.value.object = obj;
   final_array->type = WJ_TYPE_OBJECT;
 
   return final_array;
+}
 
 #undef INSERT_DECL
 }
@@ -49,26 +60,35 @@ static WJSONValue *object(Lexer *l) {
   return inner_list;
 }
 
+// parse the inner bits of an array.
 static WJSONValue *value_list(Lexer *l) {
 #define APPEND                                                                 \
   memcpy(list_values + len, value(l), sizeof(WJSONValue));                     \
   len++;
 
+  // very similar to object constructor, see decl_list above.
+  if (l->curr_token.type == RSQUARE)
+    goto end_array_builder;
+
   int len = 0;
   WJSONValue list_values[MAX_ARRAY_LEN];
-
   APPEND
+
   while (l->curr_token.type == COMMA) {
+    eat(l, COMMA);
     APPEND
   }
 
+end_array_builder :
+
+{
   WJSONValue *final_array = (WJSONValue *)malloc(sizeof(WJSONValue));
   final_array->data.value.array = list_values;
   final_array->data.length.array_len = len;
   final_array->type = WJ_TYPE_ARRAY;
 
   return final_array;
-
+}
 #undef APPEND
 }
 
@@ -86,20 +106,25 @@ static WJSONValue *value(Lexer *l) {
 
   if (cl == KW_NULL) {
     json_value->type = WJ_TYPE_NULL;
+    eat(l, KW_NULL);
   } else if (cl == KW_FALSE) {
     json_value->type = WJ_TYPE_BOOLEAN;
     json_value->data.value.boolean = false;
+    eat(l, KW_FALSE);
   } else if (cl == KW_TRUE) {
     json_value->type = WJ_TYPE_BOOLEAN;
     json_value->data.value.boolean = true;
+    eat(l, KW_TRUE);
   } else if (cl == STRING_LITERAL) {
     json_value->type = WJ_TYPE_STRING; // all strings are double-quoted.
     json_value->data.value.string = l->curr_token.value.as_ptr;
     json_value->data.length.str_len = strlen(l->curr_token.value.as_ptr);
+    eat(l, STRING_LITERAL);
   } else if (cl == NUMERIC_LITERAL) {
     json_value->type = WJ_TYPE_NUMBER;
     // TODO: need to make the token literal value a double by default here.
     json_value->data.value.number = l->curr_token.value.as_uint;
+    eat(l, NUMERIC_LITERAL);
   } else if (cl == LCURLY) {
     json_value = object(l);
   } else if (cl == LSQUARE) {
@@ -108,8 +133,10 @@ static WJSONValue *value(Lexer *l) {
     error("Blank values are not allowed, found a COMMA instead of a "
           "proper value when trying to parse a value.\n");
   } else if (cl == EMPTY) {
+    dump_lexer(l);
     error("Reached EOF when trying to parse a JSON value.\n");
   } else {
+    dump_lexer(l);
     error("Invalid starting Lexeme for value. [lexeme id %d] [lexeme rep "
           "%s]\n",
           cl, lexeme_to_string(cl));

@@ -1,6 +1,1 @@
-{
-  "name": "John",
-  "age": 30,
-  "isMarried": false,
-  "children": null
-}
+{"name":"John"}

@@ -58,8 +58,6 @@ static Token token_at_cursor(Lexer *l) {
     return (Token){EMPTY, NO_TOKEN_DATA};
   }
 
-  printf("Trying to convert one-character lexeme from '%c'.\n", ch);
-
   // JSON doesn't have char literals.
   if (l->curr_char == '\"') { // PARSE STRING LITERAL
     int sz = 0;
@@ -88,9 +86,6 @@ static Token token_at_cursor(Lexer *l) {
           1); // then, bump the pointer and read from the new literal value.
       literal_ch = l->curr_char;
     }
-
-    // then bump the cursor back to the " in the string literal decl.
-    RET_TOKEN_NEXT(-1);
 
     char *temp_value = (char *)malloc(
         sz + 1);           // malloc the size, then copy the buffer right in.
@@ -135,27 +130,7 @@ static Token token_at_cursor(Lexer *l) {
     literal_buf[i] = '\0';
     value.as_uint = atoi(literal_buf);
   } else {
-    // can treat a char like a num and switch over it.
     switch (ch) {
-      // first, handle the trivial one-character cases.
-    case '+':
-      l_type = ADD;
-      break;
-    case '-':
-      l_type = SUB;
-      break;
-    case '*':
-      l_type = MUL;
-      break;
-    case '/':
-      l_type = DIV;
-      break;
-    case '(':
-      l_type = LPAREN;
-      break;
-    case ')':
-      l_type = RPAREN;
-      break;
     case '[':
       l_type = LSQUARE;
       break;
@@ -167,9 +142,6 @@ static Token token_at_cursor(Lexer *l) {
       break;
     case '}':
       l_type = RCURLY;
-      break;
-    case ';':
-      l_type = SEMI;
       break;
     case ':':
       l_type = COLON;
@@ -204,8 +176,6 @@ static Token token_at_cursor(Lexer *l) {
 
       BRK_NEXT(-1);
 
-      printf("Finished parsing keyword from the lexer [%s]\n", keyword_buf);
-
       if (strncmp(keyword_buf, "null", 4) == 0) {
         l_type = KW_NULL;
       } else if (strncmp(keyword_buf, "true", 4) == 0) {
@@ -213,21 +183,11 @@ static Token token_at_cursor(Lexer *l) {
       } else if (strncmp(keyword_buf, "false", 5) == 0) {
         l_type = KW_FALSE;
 
-      } else { // else, parse the ID out of the keyword_buf, since it's clearly
-               // not a keyword.
-        // TODO: there has GOT to be a better way than callocing every time.
-        // this sucks hard.
-        unsigned long key_sz = strlen(keyword_buf);
-        char *id_string_ptr =
-            (char *)calloc(key_sz + 1, 1); // punn the pointer as a TokenValue,
-                                           // it's 64_t so it doesn't matter.
-        memcpy(id_string_ptr, keyword_buf, key_sz);
-        id_string_ptr[key_sz] = '\0'; // MAKE SURE TO NULL TERM THE ID STRING
-        value.as_ptr =
-            id_string_ptr; // then just punn the pointer back into a
-                           // TokenValue and pass it through, so the name of
-                           // the ID can be accessed later in the AST.
-        l_type = ID;
+      } else {
+        dump_lexer(l);
+        error("ERROR: could not find a valid character at the lexer cursor, "
+              "not even a keyword. character found: %c\n",
+              l->curr_char);
       }
     } break;
     }
@@ -252,36 +212,12 @@ begin_next:
     goto begin_next; // FUCK recursion.
   }
 
-  if ((l->curr_char == '/') && (PEEK == '/')) {
-    // line comment found
-    RET_NEXT(2);
-    while (l->curr_char != '\n') {
-      RET_NEXT(1); // until the next newline, where the comment breaks.
-    }
-    // this skips the newline, and trims off all other whitespace.
-    goto begin_next;
-  }
-
-  if ((l->curr_char == '/') && (PEEK == '*')) {
-    // block comment found
-    // skip both the / and *
-    RET_NEXT(2);
-    while ((l->curr_char != '*') && (PEEK != '/')) {
-      // we haven't found the comment's end yet.
-      RET_NEXT(1);
-    }
-    // skip past the * and /
-    RET_NEXT(1);
-    // if there's whitespace after the comment, we need to parse that. the
-    // RET_NEXT(1); after the label will take care of the /
-    goto begin_next;
-  }
-
   l->curr_token = token_at_cursor(l);
 }
 
 void eat(Lexer *lx, Lexeme l) {
   if (lx->curr_token.type != l) {
+    dump_lexer(lx);
     error("Eat error: lexemes did not match - Your \"%s\" vs the lexer's "
           "\"%s\".",
           lexeme_to_string(l), lexeme_to_string(lx->curr_token.type));
@@ -294,8 +230,36 @@ void eat(Lexer *lx, Lexeme l) {
 // in the caller without mallocing anything.
 const char *lexeme_to_string(Lexeme lexeme) {
   switch (lexeme) {
+  case LEXEME_NULL:
+    return "LEXEME_NULL";
+  case NUMERIC_LITERAL:
+    return "NUMERIC_LITERAL";
+  case STRING_LITERAL:
+    return "STRING_LITERAL";
+  case LSQUARE:
+    return "LSQUARE";
+  case RSQUARE:
+    return "RSQUARE";
+  case LCURLY:
+    return "LCURLY";
+  case RCURLY:
+    return "RCURLY";
+  case COMMA:
+    return "COMMA";
+  case COLON:
+    return "COLON";
+  case DOUBLE_QUOTE:
+    return "DOUBLE_QUOTE";
+  case WHITESPACE:
+    return "WHITESPACE";
   case EMPTY:
     return "EMPTY";
+  case KW_NULL:
+    return "KW_NULL";
+  case KW_FALSE:
+    return "KW_FALSE";
+  case KW_TRUE:
+    return "KW_TRUE";
   default:
     return "UNKNOWN_LEXEME";
   }
@@ -315,15 +279,22 @@ void dump_lexer(Lexer *l) {
   //
   // printf("\n");
 
-  printf("You are at X:\n");
+#define REDCHAR(ch) printf("\033[41m%c\033[0m", ch)
+
+  printf("You are at ");
+  REDCHAR(' ');
+  printf(":\n");
 
   for (int i = 0; i < TEXT_DUMP_LEN; i++) {
     int offset_position = l->pos + i - 6;
+
+    char curr_ch = l->text[offset_position];
+
     if (offset_position == l->pos) {
-      printf("\033[41mX\033[0m"); // X with a red background
       // TODO: maybe use ansi codes to give the character a nice background?
+      REDCHAR(curr_ch);
     } else if (offset_position < l->text_len) {
-      printf("%c", l->text[offset_position]);
+      printf("%c", curr_ch);
     } else {
       printf("?");
     }

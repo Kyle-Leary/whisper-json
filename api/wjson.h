@@ -47,9 +47,21 @@ typedef struct WJSONFile {
                     // root WJSONValue in a structure tree.
 } WJSONFile;
 
-// we really only need the getter to be public here.
-WJSONValue *wjson_object_get(WJSONObject object, const char *key);
+/* all of the helper interface methods with the returned WJSONValue structure
+ * operate generically and don't force the caller to actually check the type.
+ * they'll just throw an error if the wrong type is passed. */
 
-WJSONFile wjson_parse_file(const char *file_path);
+/* we really only need the getter to be public here. */
+WJSONValue *wjson_get(WJSONValue *value, const char *key);
+
+/* index into a JSON value object, assuming that the object is of the proper
+ * array type. */
+WJSONValue *wjson_index(WJSONValue *value, unsigned int array_index);
+
+/* the only actual parsing function, takes in a path to a file and returns
+ * either the top level JSON object or just errors. TODO: is it a good use of
+ * time to actually handle errors better? it might get annoying for a library to
+ * forcefully exit the whole application. */
+WJSONValue *wjson_parse_file(const char *file_path);
 
 #endif // !WJSON_H

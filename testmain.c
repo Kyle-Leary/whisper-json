@@ -14,32 +14,46 @@ int main(int argc, char *argv[]) {
 
   // test examples of all the basic types at top-level.
   {
-    WJSONFile value = wjson_parse_file("tests/bool.json");
-    assert(value.root->type == WJ_TYPE_BOOLEAN);
-    assert(value.root->data.value.boolean == true);
+    WJSONValue *value = wjson_parse_file("tests/bool.json");
+    assert(value->type == WJ_TYPE_BOOLEAN);
+    assert(value->data.value.boolean == true);
   }
 
   {
-    WJSONFile value = wjson_parse_file("tests/number.json");
-    assert(value.root->type == WJ_TYPE_NUMBER);
-    assert(value.root->data.value.number == 5);
+    WJSONValue *value = wjson_parse_file("tests/number.json");
+    assert(value->type == WJ_TYPE_NUMBER);
+    assert(value->data.value.number == 5);
   }
 
   {
-    WJSONFile value = wjson_parse_file("tests/string.json");
-    assert(value.root->type == WJ_TYPE_STRING);
-    assert(strncmp(value.root->data.value.string,
+    WJSONValue *value = wjson_parse_file("tests/string.json");
+    assert(value->type == WJ_TYPE_STRING);
+    assert(strncmp(value->data.value.string,
                    "top level strings are valid JSON.",
-                   value.root->data.length.str_len) == 0);
+                   value->data.length.str_len) == 0);
   }
 
   {
-    WJSONFile value = wjson_parse_file("tests/null.json");
-    assert(value.root->type == WJ_TYPE_NULL);
+    WJSONValue *value = wjson_parse_file("tests/null.json");
+    assert(value->type == WJ_TYPE_NULL);
   }
 
   // then, test larger objects.
 
-  wjson_parse_file("tests/basic.json");
+  { // grabbing string fields from a top level object
+    WJSONValue *value = wjson_parse_file("tests/basic.json");
+    WJSONValue *name = wjson_get(value, "name");
+    assert(strncmp(name->data.value.string, "John",
+                   name->data.length.str_len) == 0);
+  }
+
+  { // grabbing an array from an object, then indexing a string into that array.
+    WJSONValue *value = wjson_parse_file("tests/nesting.json");
+    WJSONValue *skills_arr = wjson_get(value, "skills");
+    WJSONValue *first_skill = wjson_index(skills_arr, 0);
+    assert(strncmp(first_skill->data.value.string, "Java",
+                   first_skill->data.length.str_len) == 0);
+  }
+
   return 0;
 }

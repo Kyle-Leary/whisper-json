@@ -16,29 +16,14 @@ typedef enum Lexeme {
   NUMERIC_LITERAL, // literal type lexemes.
   STRING_LITERAL,  // double quote string
 
-  ID, // an ID for a variable or function or whatnot, parsed as a
-      // backup if the keyword parsing falls through.
-
-  ADD,
-  SUB,
-  MUL,
-  DIV,
-
-  LPAREN, // ()
-  RPAREN,
   LSQUARE, // []
   RSQUARE,
   LCURLY, // {}
   RCURLY,
 
-  SEMI,
-
   COMMA,
   COLON,
 
-  EQUAL,
-
-  SINGLE_QUOTE,
   DOUBLE_QUOTE,
 
   WHITESPACE, // newline and spaces

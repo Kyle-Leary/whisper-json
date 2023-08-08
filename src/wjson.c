@@ -5,14 +5,12 @@
 
 // define the main api endpoint functions in this.
 
-// lex -> parse -> visit AST -> create API JSON structure for the client to
-// traverse -> done!
-WJSONFile wjson_parse_file(const char *file_path) {
-  // use a file as input for the compiler.
+WJSONValue *wjson_parse_file(const char *file_path) {
   char input_buffer[INPUT_LEN] = {0};
   read_into_buf(file_path, input_buffer, INPUT_LEN);
 
   WJSONValue *root_value = parse(input_buffer);
 
-  return (WJSONFile){.root = root_value};
+  // why even bother having a wrapper type, just return the data directly.
+  return root_value;
 }
