@@ -64,4 +64,8 @@ WJSONValue *wjson_index(WJSONValue *value, unsigned int array_index);
  * forcefully exit the whole application. */
 WJSONValue *wjson_parse_file(const char *file_path);
 
+/* doesn't prettyprint objects since it doesn't keep around the string names, so
+ * this might have limited usefulness. */
+void wjson_pretty_print(WJSONValue *value);
+
 #endif // !WJSON_H

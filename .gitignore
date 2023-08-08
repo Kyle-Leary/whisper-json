@@ -26,6 +26,7 @@ build/
 *.out
 *.app
 *.elf
+wjsontest
 
 # IDE / editor specific files
 *.swp
