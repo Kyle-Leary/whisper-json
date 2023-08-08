@@ -1,6 +1,6 @@
 #include "lexer.h"
-#include "ast.h"
 #include "defines.h"
+#include "types.h"
 #include "util.h"
 
 #include <assert.h>

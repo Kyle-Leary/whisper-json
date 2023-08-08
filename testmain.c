@@ -1,4 +1,3 @@
-#include "ast.h"
 #include "lexer.h"
 #include "parse.h"
 #include "wjson.h"
@@ -10,7 +9,6 @@
 
 int main(int argc, char *argv[]) {
   // test individual segments of the program.
-  test_ast();
   test_parse();
   test_lexer();
 

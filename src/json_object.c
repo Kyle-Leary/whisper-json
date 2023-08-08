@@ -1,4 +1,5 @@
 #include "json_object.h"
+#include "wjson.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,7 +26,8 @@ void wjson_object_insert(WJSONObject object, const char *key,
          sizeof(WJSONValue) * 1);
 }
 
-WJSONObject *wjson_object_create() {
-  WJSONObject *object = (WJSONObject *)calloc(sizeof(WJSONObject), 1);
+WJSONObject wjson_object_create() {
+  WJSONObject object =
+      (WJSONObject)calloc(sizeof(WJSONValue), WJSON_OBJECT_LEN);
   return object;
 }

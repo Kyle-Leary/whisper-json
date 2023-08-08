@@ -1,7 +1,7 @@
 #include "parse.h"
 
-#include "ast.h"
 #include "defines.h"
+#include "json_object.h"
 #include "lexer.h"
 #include "util.h"
 #include "wjson.h"
@@ -13,13 +13,73 @@
 #include <string.h>
 #include <sys/types.h>
 
-// the "do nothing" statement.
-static NodeIndex empty(Lexer *l) {
-  return add_node(make_node(NT_EMPTY, NULL_INDEX, NULL_INDEX, NO_NODE_DATA));
+#define MAX_ARRAY_LEN 256
+
+static WJSONValue *value(Lexer *l);
+
+static WJSONValue *decl_list(Lexer *l) {
+  // just inline the DECL rule so that we don't have to make a structure and
+  // pass around both the key and value together.
+#define INSERT_DECL(object)                                                    \
+  char *key = l->curr_token.value.as_ptr;                                      \
+  eat(l, STRING_LITERAL);                                                      \
+  eat(l, COLON);                                                               \
+  wjson_object_insert(object, key, value(l));
+
+  WJSONObject obj = wjson_object_create();
+
+  INSERT_DECL(obj)
+  while (l->curr_token.type == COMMA) {
+    INSERT_DECL(obj)
+  }
+
+  WJSONValue *final_array = (WJSONValue *)malloc(sizeof(WJSONValue));
+  final_array->data.value.object = obj;
+  final_array->type = WJ_TYPE_OBJECT;
+
+  return final_array;
+
+#undef INSERT_DECL
 }
 
-// OR over a bunch of potential statement types.
-static NodeIndex value(Lexer *l) {
+static WJSONValue *object(Lexer *l) {
+  eat(l, LCURLY);
+  WJSONValue *inner_list = decl_list(l);
+  eat(l, RCURLY);
+  return inner_list;
+}
+
+static WJSONValue *value_list(Lexer *l) {
+#define APPEND                                                                 \
+  memcpy(list_values + len, value(l), sizeof(WJSONValue));                     \
+  len++;
+
+  int len = 0;
+  WJSONValue list_values[MAX_ARRAY_LEN];
+
+  APPEND
+  while (l->curr_token.type == COMMA) {
+    APPEND
+  }
+
+  WJSONValue *final_array = (WJSONValue *)malloc(sizeof(WJSONValue));
+  final_array->data.value.array = list_values;
+  final_array->data.length.array_len = len;
+  final_array->type = WJ_TYPE_ARRAY;
+
+  return final_array;
+
+#undef APPEND
+}
+
+static WJSONValue *array(Lexer *l) {
+  eat(l, LSQUARE);
+  WJSONValue *inner_list = value_list(l);
+  eat(l, RSQUARE);
+  return inner_list;
+}
+
+static WJSONValue *value(Lexer *l) {
   Lexeme cl = l->curr_token.type;
 
   WJSONValue *json_value = (WJSONValue *)calloc(sizeof(WJSONValue), 1);
@@ -41,9 +101,9 @@ static NodeIndex value(Lexer *l) {
     // TODO: need to make the token literal value a double by default here.
     json_value->data.value.number = l->curr_token.value.as_uint;
   } else if (cl == LCURLY) {
-    // parse dictionary
+    json_value = object(l);
   } else if (cl == LSQUARE) {
-    // parse array
+    json_value = array(l);
   } else if (cl == COMMA) {
     error("Blank values are not allowed, found a COMMA instead of a "
           "proper value when trying to parse a value.\n");
@@ -55,74 +115,14 @@ static NodeIndex value(Lexer *l) {
           cl, lexeme_to_string(cl));
   }
 
-  // parse into a JSONValue directly since it's easy, one less thing the visitor
-  // has to do.
-  return add_node(make_node(NT_VALUE, NULL_INDEX, NULL_INDEX,
-                            (NodeData){.as_ptr = json_value}));
+  return json_value;
 }
 
-// they have seperate grammar rules, but use the generic NT_LIST ast rep.
-static NodeIndex value_list(Lexer *l) {
-  NodeIndex left = value(l);
-  NodeIndex second_term = NULL_INDEX;
-
-  Lexeme cl = l->curr_token.type;
-
-  if (cl == COMMA) {
-    second_term = value_list(l);
-  }
-  // we've reached the end of the args.
-
-  return add_node(make_node(NT_LIST, left, second_term, NO_NODE_DATA));
-}
-
-// parse out the key-value pairs in the JSON objects.
-static NodeIndex decl(Lexer *l) {
-  char *key = l->curr_token.value.as_ptr;
-
-  eat(l, STRING_LITERAL); // "key" : value
-  eat(l, COLON);
-  NodeIndex value_node = value(l);
-
-  return add_node(
-      make_node(NT_DECL, value_node, NULL_INDEX, (NodeData){.as_ptr = key}));
-}
-
-static NodeIndex decl_list(Lexer *l) {
-  NodeIndex left = decl(l);
-  NodeIndex second_term = NULL_INDEX;
-
-  Lexeme cl = l->curr_token.type;
-
-  if (cl == COMMA) {
-    second_term = decl_list(l);
-  }
-  // we've reached the end of the declarations.
-
-  return add_node(make_node(NT_LIST, left, second_term, NO_NODE_DATA));
-}
-
-// these are both just list rules with special characters wrapped around them.
-static NodeIndex object(Lexer *l) {
-  eat(l, LCURLY);
-  NodeIndex inner_list = decl_list(l);
-  eat(l, RCURLY);
-  return inner_list;
-}
-
-static NodeIndex array(Lexer *l) {
-  eat(l, LSQUARE);
-  NodeIndex inner_list = value_list(l);
-  eat(l, RSQUARE);
-  return inner_list;
-}
-
-// parse is the only non-static API method of the parser. it parses the whole
-// program into the global AST.
-//
-// will return the index of the root node into the
-// global ast Node array.
-NodeIndex parse(char text_input[INPUT_LEN]) {
+// parse is the only non-static API method of the parser. don't even bother with
+// an AST for something as simple as parsing JSON. just directly return a
+// JSONValue from each rule, and go from there, recursively parsing until we're
+// done with the toplevel value.
+WJSONValue *parse(char text_input[INPUT_LEN]) {
   Lexer *l = (Lexer *)malloc(
       sizeof(Lexer)); // pass through the lexer manually and malloc that. TODO:
                       // is there a better way to place the lexer in memory?

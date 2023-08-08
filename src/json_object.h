@@ -7,4 +7,4 @@
 // expose this functionality only internally.
 void wjson_object_insert(WJSONObject object, const char *key,
                          WJSONValue *value);
-WJSONObject *wjson_object_create();
+WJSONObject wjson_object_create();

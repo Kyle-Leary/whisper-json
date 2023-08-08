@@ -25,8 +25,7 @@ typedef struct WJSONData {
     double number;     // in JSON, all "number" values are doubles.
     WJSONValue *array; // a simple list of values with specified length.
     int boolean;
-    WJSONObject object; // an object, acts like a hashmap. this isn't a pointer
-                        // because it already points to an array!
+    WJSONObject *object; // an object pointer, acts like a hashmap.
   } value;
   union {
     unsigned int str_len;

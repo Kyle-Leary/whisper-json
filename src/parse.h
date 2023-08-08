@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ast.h"
 #include "defines.h"
+#include "wjson.h"
 
-NodeIndex parse(char text_input[INPUT_LEN]);
+WJSONValue *parse(char text_input[INPUT_LEN]);
 void test_parse();

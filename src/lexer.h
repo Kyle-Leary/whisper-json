@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ast.h"
 #include "defines.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -52,6 +51,8 @@ typedef enum Lexeme {
 } Lexeme;
 
 typedef Value64 TokenValue;
+
+#define NO_TOKEN_DATA ((Value64){.as_uint = 0})
 
 // what the lexeme actually holds internally.
 typedef struct Token {
