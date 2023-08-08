@@ -18,6 +18,7 @@ union Value64 { // union is just a compiler-known way of "multiple
                 // interpretations of the same data".
   uint64_t as_uint;
   char as_char;
+  double as_double;
   void *as_ptr;
 };
 typedef union Value64 Value64;

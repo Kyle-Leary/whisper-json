@@ -123,7 +123,7 @@ static WJSONValue *value(Lexer *l) {
   } else if (cl == NUMERIC_LITERAL) {
     json_value->type = WJ_TYPE_NUMBER;
     // TODO: need to make the token literal value a double by default here.
-    json_value->data.value.number = l->curr_token.value.as_uint;
+    json_value->data.value.number = l->curr_token.value.as_double;
     eat(l, NUMERIC_LITERAL);
   } else if (cl == LCURLY) {
     json_value = object(l);

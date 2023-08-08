@@ -39,6 +39,11 @@
     l->curr_char = l->text[l->pos];                                            \
   }
 
+// all of the characters that can show up in a numeric JSON literal.
+#define IS_NUMERIC_CHAR(ch)                                                    \
+  ((isdigit(ch)) || (ch == '+') || (ch == '-') || (ch == 'e') ||               \
+   (ch == 'E') || (ch == '.'))
+
 // this is only for bumping the token internally through the next() function.
 // doesn't need to be exposed?
 // token_at_cursor leaves the lexer state pointing to the last character in the
@@ -97,8 +102,8 @@ static Token token_at_cursor(Lexer *l) {
                                // the token value, so that everything else can
                                // easily access it through the ast or whatever.
 
-  } else if (isdigit(l->curr_char)) { // parse numeric literals, starting with
-                                      // INT_LITERAL.
+  } else if (IS_NUMERIC_CHAR(
+                 l->curr_char)) { // parse any numeric literal into a double.
 
     l_type = NUMERIC_LITERAL; // the type doesn't actually matter, they all just
                               // hold a double of data anyway.
@@ -107,28 +112,34 @@ static Token token_at_cursor(Lexer *l) {
 
     int i = 0;
 
-    char literal_ch = l->curr_char;
-    while (isdigit(literal_ch)) {
+    while (IS_NUMERIC_CHAR(l->curr_char)) {
       if (i >= MAX_STR_LITERAL_SIZE) {
-        while (isdigit(literal_ch)) {
+        while (IS_NUMERIC_CHAR(l->curr_char)) {
           RET_TOKEN_NEXT(1);
-          literal_ch = l->curr_char;
         }
         break;
       }
 
-      literal_buf[i] = literal_ch;
+      literal_buf[i] = l->curr_char;
       i++;
       RET_TOKEN_NEXT(
           1); // then, bump the pointer and read from the new literal value.
-      literal_ch = l->curr_char;
     }
 
     RET_TOKEN_NEXT(-1);
 
     // null term, then convert the number.
     literal_buf[i] = '\0';
-    value.as_uint = atoi(literal_buf);
+    char *end;
+    // it's actually really easy. this stdlib function handles all the weird
+    // edge cases and returns a double, no questions asked.
+    value.as_double = strtod(literal_buf, &end);
+    if (end == literal_buf) {
+      error("no conversion between a literal and a float could be preformed "
+            "with strtod(). Tried to parse %s.\n",
+            literal_buf);
+    }
+
   } else {
     switch (ch) {
     case '[':

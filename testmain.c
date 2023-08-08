@@ -30,7 +30,8 @@ int main(int argc, char *argv[]) {
   {
     WJSONValue *value = wjson_parse_file("tests/number.json");
     assert(value->type == WJ_TYPE_NUMBER);
-    assert(value->data.value.number == 5);
+    printf("%f\n", value->data.value.number);
+    assert(value->data.value.number == 5.0f);
     wjson_pretty_print(value, 0);
   }
 
@@ -72,6 +73,24 @@ int main(int argc, char *argv[]) {
     WJSONValue *value = wjson_parse_file("tests/arrays.json");
     wjson_pretty_print(value, true);
   }
+
+  {
+    WJSONValue *value = wjson_parse_file("tests/full_without_escapes.json");
+    wjson_pretty_print(value, true);
+  }
+
+  { // sci notation numbers work.
+    WJSONValue *value = wjson_parse_file("tests/sci_notation.json");
+    assert(value->type == WJ_TYPE_NUMBER);
+    assert(value->data.value.number == 4.23897);
+    wjson_pretty_print(value, true);
+  }
+
+  // TODO: escape codes in string literals.
+  // {
+  //   WJSONValue *value = wjson_parse_file("tests/full.json");
+  //   wjson_pretty_print(value, true);
+  // }
 
   return 0;
 }
