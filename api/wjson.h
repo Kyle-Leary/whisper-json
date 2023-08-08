@@ -4,6 +4,9 @@
 #include <stdint.h>
 
 typedef enum WJSONType { // each JSON field has a type associated with it.
+  WJ_TYPE_INVALID =
+      0, // objects are zero-allocated, so if an object field grabbed has an
+         // invalid type, we know it hasn't been initialized yet and we missed.
   WJ_TYPE_STRING,
   WJ_TYPE_NUMBER,
   WJ_TYPE_BOOLEAN,
@@ -67,7 +70,9 @@ WJSONValue *wjson_parse_file(const char *file_path);
 WJSONValue *wjson_parse_string(char *input);
 
 /* doesn't prettyprint objects since it doesn't keep around the string names, so
- * this might have limited usefulness. */
-void wjson_pretty_print(WJSONValue *value);
+ * this might have limited usefulness. also, control whether it should show the
+ * hashed string value when printing out all the subobjects of a WJSONValue
+ * object type. */
+void wjson_pretty_print(WJSONValue *value, int show_hash);
 
 #endif // !WJSON_H

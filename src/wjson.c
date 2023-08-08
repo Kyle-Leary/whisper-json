@@ -1,4 +1,5 @@
 #include "wjson.h"
+#include "json_object.h"
 #include "parse.h"
 #include "util.h"
 #include <stdio.h>
@@ -19,11 +20,14 @@ WJSONValue *wjson_parse_string(char *input) {
   return root_value;
 }
 
-static void wjson_pretty_print_recursive(WJSONValue *value, int indent_level) {
-  // Print indentation
-  for (int i = 0; i < indent_level; i++) {
-    printf("  ");
+static void wjson_pretty_print_recursive(WJSONValue *value, int indent_level,
+                                         int show_hash) {
+#define INDENT                                                                 \
+  for (int i = 0; i < indent_level; i++) {                                     \
+    printf("  ");                                                              \
   }
+
+  INDENT
 
   // Handle different types
   switch (value->type) {
@@ -40,19 +44,42 @@ static void wjson_pretty_print_recursive(WJSONValue *value, int indent_level) {
     printf("[\n");
     for (unsigned int i = 0; i < value->data.length.array_len; i++) {
       wjson_pretty_print_recursive(&value->data.value.array[i],
-                                   indent_level + 1);
+                                   indent_level + 1, show_hash);
       if (i < value->data.length.array_len - 1) {
         printf(",");
       }
       printf("\n");
     }
-    for (int i = 0; i < indent_level; i++) {
-      printf("  ");
-    }
+
+    INDENT
+
     printf("]");
     break;
   case WJ_TYPE_OBJECT:
-    printf("{ OBJECT }");
+    // this kind of sucks. it just prints all the object values that aren't
+    // NULL. we have no way of knowing the actual key without massive overhead,
+    // so just print the final hash of the key instead.
+    printf("{\n");
+
+    for (unsigned int i = 0; i < WJSON_OBJECT_LEN; i++) {
+      WJSONValue *curr_value = &value->data.value.object[i];
+      if (curr_value->type == WJ_TYPE_INVALID)
+        continue;
+      else {
+        wjson_pretty_print_recursive(curr_value, indent_level + 1, show_hash);
+        if (i < value->data.length.array_len - 1) {
+          if (show_hash)
+            printf(" (hash: %d),", i);
+          else
+            printf(" ,");
+        }
+        printf("\n");
+      }
+    }
+
+    INDENT
+
+    printf("}");
     break;
   case WJ_TYPE_NULL:
     printf("null");
@@ -63,7 +90,7 @@ static void wjson_pretty_print_recursive(WJSONValue *value, int indent_level) {
   }
 }
 
-void wjson_pretty_print(WJSONValue *value) {
-  wjson_pretty_print_recursive(value, 0);
+void wjson_pretty_print(WJSONValue *value, int show_hash) {
+  wjson_pretty_print_recursive(value, 0, show_hash);
   printf("\n");
 }

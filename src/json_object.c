@@ -15,8 +15,15 @@ static unsigned long hash(char *str) {
 }
 
 // api helpers
+// signify failure (a key miss) with a NULL value ptr.
 static WJSONValue *wjson_object_get(WJSONObject object, const char *key) {
-  return object + (hash((char *)key) % WJSON_OBJECT_LEN);
+  WJSONValue *value = object + (hash((char *)key) % WJSON_OBJECT_LEN);
+  if (value->type == WJ_TYPE_INVALID) {
+    // don't print anything. the caller can work this out on their own and react
+    // how they'd like.
+    return NULL;
+  }
+  return value;
 }
 
 // public api functionality
@@ -31,6 +38,9 @@ WJSONValue *wjson_index(WJSONValue *value, unsigned int array_index) {
 }
 
 WJSONObject wjson_object_create() {
+  // we'll suck it up and actually spend the time zero-allocing the object. this
+  // allows us to know when we've "missed" in the object getter with reasonable
+  // accuracy.
   WJSONObject object =
       (WJSONObject)calloc(sizeof(WJSONValue), WJSON_OBJECT_LEN);
   return object;

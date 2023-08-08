@@ -17,21 +17,21 @@ int main(int argc, char *argv[]) {
     WJSONValue *value = wjson_parse_file("tests/bool.json");
     assert(value->type == WJ_TYPE_BOOLEAN);
     assert(value->data.value.boolean == true);
-    wjson_pretty_print(value);
+    wjson_pretty_print(value, 0);
   }
 
   { // do the same thing, but test the input_buffer version directly.
     WJSONValue *value = wjson_parse_string("false");
     assert(value->type == WJ_TYPE_BOOLEAN);
     assert(value->data.value.boolean == false);
-    wjson_pretty_print(value);
+    wjson_pretty_print(value, 0);
   }
 
   {
     WJSONValue *value = wjson_parse_file("tests/number.json");
     assert(value->type == WJ_TYPE_NUMBER);
     assert(value->data.value.number == 5);
-    wjson_pretty_print(value);
+    wjson_pretty_print(value, 0);
   }
 
   {
@@ -40,13 +40,13 @@ int main(int argc, char *argv[]) {
     assert(strncmp(value->data.value.string,
                    "top level strings are valid JSON.",
                    value->data.length.str_len) == 0);
-    wjson_pretty_print(value);
+    wjson_pretty_print(value, 0);
   }
 
   {
     WJSONValue *value = wjson_parse_file("tests/null.json");
     assert(value->type == WJ_TYPE_NULL);
-    wjson_pretty_print(value);
+    wjson_pretty_print(value, 0);
   }
 
   // then, test larger objects.
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     WJSONValue *name = wjson_get(value, "name");
     assert(strncmp(name->data.value.string, "John",
                    name->data.length.str_len) == 0);
-    wjson_pretty_print(value);
+    wjson_pretty_print(value, 0);
   }
 
   { // grabbing an array from an object, then indexing a string into that array.
@@ -65,12 +65,12 @@ int main(int argc, char *argv[]) {
     WJSONValue *first_skill = wjson_index(skills_arr, 0);
     assert(strncmp(first_skill->data.value.string, "Java",
                    first_skill->data.length.str_len) == 0);
-    wjson_pretty_print(value);
+    wjson_pretty_print(value, 0);
   }
 
   { // show off prettyprinting a little, it works well with arrays.
     WJSONValue *value = wjson_parse_file("tests/arrays.json");
-    wjson_pretty_print(value);
+    wjson_pretty_print(value, true);
   }
 
   return 0;
