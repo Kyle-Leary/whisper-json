@@ -1,0 +1,14 @@
+{
+  "person": {
+    "name": "John",
+    "age": 30,
+    "isMarried": false,
+    "address": {
+      "city": "New York",
+      "zip": "10001"
+    }
+  },
+  "skills": ["Java", "Python", 42, null],
+  "emptyArray": [],
+  "emptyObject": {}
+}

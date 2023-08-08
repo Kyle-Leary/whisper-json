@@ -1,0 +1,30 @@
+{
+  "string": "A string with escapes: \\\" \\/ \\\\ \\b \\f \\n \\r \\t \\u0041",
+  "number": -123.456e+789,
+  "booleanTrue": true,
+  "booleanFalse": false,
+  "nullValue": null,
+  "object": {
+    "nestedString": "Nested with \"quotes\"",
+    "nestedNull": null,
+    "emptyObject": {},
+    "arrayOfObjects": [
+      {
+        "key": "value"
+      },
+      {
+        "key2": "value2"
+      }
+    ]
+  },
+  "array": [
+    "string",
+    123,
+    null,
+    [1, 2, 3],
+    {
+      "key": "value"
+    }
+  ],
+  "emptyArray": []
+}
