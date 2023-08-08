@@ -63,6 +63,8 @@ WJSONValue *wjson_index(WJSONValue *value, unsigned int array_index);
  * time to actually handle errors better? it might get annoying for a library to
  * forcefully exit the whole application. */
 WJSONValue *wjson_parse_file(const char *file_path);
+/* another version that just takes in an input buffer directly. */
+WJSONValue *wjson_parse_string(char *input);
 
 /* doesn't prettyprint objects since it doesn't keep around the string names, so
  * this might have limited usefulness. */

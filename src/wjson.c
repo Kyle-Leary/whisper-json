@@ -5,11 +5,15 @@
 
 // define the main api endpoint functions in this.
 
+// wrapper around parse_string.
 WJSONValue *wjson_parse_file(const char *file_path) {
   char input_buffer[INPUT_LEN] = {0};
   read_into_buf(file_path, input_buffer, INPUT_LEN);
+  return wjson_parse_string(input_buffer);
+}
 
-  WJSONValue *root_value = parse(input_buffer);
+WJSONValue *wjson_parse_string(char *input) {
+  WJSONValue *root_value = parse((char *)input);
 
   // why even bother having a wrapper type, just return the data directly.
   return root_value;

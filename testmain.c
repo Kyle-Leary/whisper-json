@@ -20,6 +20,13 @@ int main(int argc, char *argv[]) {
     wjson_pretty_print(value);
   }
 
+  { // do the same thing, but test the input_buffer version directly.
+    WJSONValue *value = wjson_parse_string("false");
+    assert(value->type == WJ_TYPE_BOOLEAN);
+    assert(value->data.value.boolean == false);
+    wjson_pretty_print(value);
+  }
+
   {
     WJSONValue *value = wjson_parse_file("tests/number.json");
     assert(value->type == WJ_TYPE_NUMBER);
