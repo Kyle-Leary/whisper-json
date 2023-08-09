@@ -52,7 +52,9 @@ typedef struct WJSONFile {
 
 /* all of the helper interface methods with the returned WJSONValue structure
  * operate generically and don't force the caller to actually check the type.
- * they'll just throw an error if the wrong type is passed. */
+ * they'll just throw an error if the wrong type is passed. these unwrap
+ * WJSONValue structures into actual helpful values, and hopefully the client
+ * will not have to interface directly with the data in the structure. */
 
 /* we really only need the getter to be public here. */
 WJSONValue *wjson_get(WJSONValue *value, const char *key);
@@ -60,6 +62,17 @@ WJSONValue *wjson_get(WJSONValue *value, const char *key);
 /* index into a JSON value object, assuming that the object is of the proper
  * array type. */
 WJSONValue *wjson_index(WJSONValue *value, unsigned int array_index);
+
+/* unwrap the number from the WJSONValue or return nan? */
+double wjson_number(WJSONValue *value);
+
+/* returns 0 if not null, 1 if it is null. */
+int wjson_is_null(WJSONValue *value);
+
+/* unwrap the string pointer inside the WJSONValue structure. this is just the
+ * pointer, so if you want to be extra safe, copy the result into something else
+ * and don't use it directly. */
+char *wjson_string(WJSONValue *value);
 
 /* the only actual parsing function, takes in a path to a file and returns
  * either the top level JSON object or just errors. TODO: is it a good use of

@@ -1,5 +1,6 @@
 #include "json_object.h"
 #include "wjson.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,6 +36,25 @@ WJSONValue *wjson_get(WJSONValue *value, const char *key) {
 WJSONValue *wjson_index(WJSONValue *value, unsigned int array_index) {
   WJSONValue *array = value->data.value.array;
   return &array[array_index];
+}
+
+double wjson_number(WJSONValue *value) {
+  if (value->type != WJ_TYPE_NUMBER) {
+    // use NAN as the double version of NULL.
+    return NAN;
+  } else {
+    return value->data.value.number;
+  }
+}
+
+int wjson_is_null(WJSONValue *value) { return (value->type == WJ_TYPE_NULL); }
+
+char *wjson_string(WJSONValue *value) {
+  if (value->type != WJ_TYPE_STRING) {
+    return NULL;
+  } else {
+    return value->data.value.string;
+  }
 }
 
 WJSONObject wjson_object_create() {

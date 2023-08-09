@@ -54,9 +54,9 @@ int main(int argc, char *argv[]) {
 
   { // grabbing string fields from a top level object
     WJSONValue *value = wjson_parse_file("tests/basic.json");
-    WJSONValue *name = wjson_get(value, "name");
-    assert(strncmp(name->data.value.string, "John",
-                   name->data.length.str_len) == 0);
+    WJSONValue *name_value = wjson_get(value, "name");
+    char *name = wjson_string(name_value);
+    assert(strncmp(name, "John", name_value->data.length.str_len) == 0);
     wjson_pretty_print(value, 0);
   }
 
@@ -82,8 +82,19 @@ int main(int argc, char *argv[]) {
   { // sci notation numbers work.
     WJSONValue *value = wjson_parse_file("tests/sci_notation.json");
     assert(value->type == WJ_TYPE_NUMBER);
-    assert(value->data.value.number == 4.23897);
+    assert(wjson_number(value) == 4.23897);
     wjson_pretty_print(value, true);
+  }
+
+  {
+    WJSONValue *value = wjson_parse_file("tests/null.json");
+    assert(wjson_is_null(value) == 1);
+  }
+
+  {
+    WJSONValue *value =
+        wjson_parse_file("tests/arrays.json"); // Contains a non-null value
+    assert(wjson_is_null(value) == 0);
   }
 
   // TODO: escape codes in string literals.
