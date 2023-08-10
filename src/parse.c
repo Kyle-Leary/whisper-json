@@ -71,6 +71,9 @@ static WJSONValue *value_list(Lexer *l) {
     goto end_array_builder;
 
   int len = 0;
+  // we don't know how long the malloced array in the actual structure needs to
+  // be at first, so do this in a big temporary buffer and copy over into an
+  // array ptr at the end of the function.
   WJSONValue list_values[MAX_ARRAY_LEN];
   APPEND
 
@@ -83,7 +86,14 @@ end_array_builder :
 
 {
   WJSONValue *final_array = (WJSONValue *)malloc(sizeof(WJSONValue));
-  final_array->data.value.array = list_values;
+
+  int array_sz = sizeof(WJSONValue) * len;
+  WJSONValue *final_array_ptr = (WJSONValue *)malloc(array_sz);
+  memcpy(final_array_ptr, list_values,
+         array_sz); // if len is greater than the MAX_ARRAY_LEN allocated
+                    // buffer, then... uh...
+
+  final_array->data.value.array = final_array_ptr;
   final_array->data.length.array_len = len;
   final_array->type = WJ_TYPE_ARRAY;
 
@@ -117,8 +127,13 @@ static WJSONValue *value(Lexer *l) {
     eat(l, KW_TRUE);
   } else if (cl == STRING_LITERAL) {
     json_value->type = WJ_TYPE_STRING; // all strings are double-quoted.
-    json_value->data.value.string = l->curr_token.value.as_ptr;
     json_value->data.length.str_len = strlen(l->curr_token.value.as_ptr);
+    // actually allocate the string. assure that all inner values will always be
+    // valid.
+    json_value->data.value.string =
+        (char *)malloc(json_value->data.length.str_len);
+    memcpy(json_value->data.value.string, l->curr_token.value.as_ptr,
+           json_value->data.length.str_len);
     eat(l, STRING_LITERAL);
   } else if (cl == NUMERIC_LITERAL) {
     json_value->type = WJ_TYPE_NUMBER;
@@ -154,7 +169,8 @@ WJSONValue *parse(char text_input[INPUT_LEN]) {
       sizeof(Lexer)); // pass through the lexer manually and malloc that. TODO:
                       // is there a better way to place the lexer in memory?
 
-  // use the actual string length and not the buffer length to do the EOF check.
+  // use the actual string length and not the buffer length to do the EOF
+  // check.
   l->text_len = strlen(text_input);
   l->pos = -1; // set to -1, the init next() call will put it at 0.
   l->curr_token.type = EMPTY;
